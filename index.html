@@ -1,46 +1,47 @@
 <!DOCTYPE html>
 <html>
 <head>
+
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>🏸 Badminton Tournament</title>
+
+<title>배드민턴 대회관리 PRO</title>
+
 <style>
 
 body{
 font-family:Arial;
-background:#f2f2f2;
 text-align:center;
-padding:20px
+background:#f4f4f4;
+}
+
+h1{
+background:#222;
+color:white;
+padding:10px;
 }
 
 button{
-padding:10px 15px;
+padding:10px;
 margin:5px;
 font-size:16px;
-background:#2c7be5;
-color:white;
-border:none;
-border-radius:6px
 }
 
-input{
-width:40px;
-padding:4px
+.match{
+background:white;
+margin:8px;
+padding:10px;
+border-radius:10px;
 }
 
 table{
 margin:auto;
 border-collapse:collapse;
-background:white;
-margin-top:10px
 }
 
 td,th{
-border:1px solid #999;
-padding:8px
-}
-
-h3{
-margin-top:30px
+border:1px solid #aaa;
+padding:6px;
 }
 
 </style>
@@ -49,31 +50,44 @@ margin-top:30px
 
 <body>
 
-<h2>🏸 배드민턴 대회관리 PRO</h2>
+<h1>🏸 배드민턴 PRO</h1>
 
-<input id="teamInput" placeholder="팀">
-<button onclick="addTeam()">팀 추가</button>
+<h2>팀 등록</h2>
 
-<h3>팀 목록</h3>
+<input id="teamInput">
+<button onclick="addTeam()">추가</button>
+
 <div id="teamList"></div>
 
-<br>
+<h2>조 수</h2>
 
-<h3>토너먼트</h3>
-<div id="tournament"></div>
+<select id="groupCount">
+<option value="2">2조</option>
+<option value="4">4조</option>
+</select>
 
-  <script>
+<button onclick="makeGroups()">자동 조편성</button>
+
+<div id="groups"></div>
+
+<h2>경기</h2>
+
+<div id="matches"></div>
+
+<h2>순위표</h2>
+
+<div id="ranking"></div>
+
+<script>
 
 let teams=[]
-let groupA=[]
-let groupB=[]
+let groups={}
 let matches=[]
+let scoreData={}
 
 function addTeam(){
 
 let name=document.getElementById("teamInput").value
-
-if(name=="") return
 
 teams.push(name)
 
@@ -83,50 +97,78 @@ document.getElementById("teamInput").value=""
 
 }
 
-function shuffle(arr){
+function shuffle(array){
 
-for(let i=arr.length-1;i>0;i--){
+for(let i=array.length-1;i>0;i--){
 
 let j=Math.floor(Math.random()*(i+1))
 
-[arr[i],arr[j]]=[arr[j],arr[i]]
+[array[i],array[j]]=[array[j],array[i]]
 
 }
 
 }
 
-function createGroups(){
+function makeGroups(){
+
+shuffle(teams)
+
+let groupCount=parseInt(document.getElementById("groupCount").value)
+
+groups={}
+
+for(let i=0;i<groupCount;i++){
+groups["Group "+(i+1)]=[]
+}
+
+teams.forEach((t,i)=>{
+
+let g="Group "+((i%groupCount)+1)
+
+groups[g].push(t)
+
+})
+
+showGroups()
+
+makeMatches()
+
+}
+
+function showGroups(){
+
+let html=""
+
+for(let g in groups){
+
+html+="<h3>"+g+"</h3>"
+
+groups[g].forEach(t=>{
+html+=t+"<br>"
+})
+
+}
+
+document.getElementById("groups").innerHTML=html
+
+}
+
+function makeMatches(){
 
 matches=[]
 
-let temp=[...teams]
+for(let g in groups){
 
-shuffle(temp)
+let t=groups[g]
 
-let mid=Math.ceil(temp.length/2)
+for(let i=0;i<t.length;i++){
 
-groupA=temp.slice(0,mid)
-
-groupB=temp.slice(mid)
-
-makeGroupMatches(groupA)
-makeGroupMatches(groupB)
-
-drawMatches()
-
-}
-
-function makeGroupMatches(group){
-
-for(let i=0;i<group.length;i++){
-
-for(let j=i+1;j<group.length;j++){
+for(let j=i+1;j<t.length;j++){
 
 matches.push({
-a:group[i],
-b:group[j],
-sa:"",
-sb:""
+teamA:t[i],
+teamB:t[j],
+group:g
 })
 
 }
@@ -135,70 +177,78 @@ sb:""
 
 }
 
-function drawMatches(){
+showMatches()
 
-let html="<table>"
-html+="<tr><th>팀A</th><th>점수</th><th>팀B</th></tr>"
+}
+
+function showMatches(){
+
+let html=""
 
 matches.forEach((m,i)=>{
 
-html+=`
-<tr>
-<td>${m.a}</td>
-<td>
-<input onchange="save(${i},0,this.value)"> :
-<input onchange="save(${i},1,this.value)">
-</td>
-<td>${m.b}</td>
-</tr>
-`
+html+=`<div class="match">
+
+${m.group} : ${m.teamA} vs ${m.teamB}
+
+<br>
+
+<input id="a${i}" type="number" placeholder="A점수">
+
+<input id="b${i}" type="number" placeholder="B점수">
+
+<button onclick="saveScore(${i})">저장</button>
+
+</div>`
 
 })
 
-html+="</table>"
-
-document.getElementById("groupMatches").innerHTML=html
+document.getElementById("matches").innerHTML=html
 
 }
 
-function save(i,t,v){
+function saveScore(i){
 
-if(t==0) matches[i].sa=v
-else matches[i].sb=v
+let a=parseInt(document.getElementById("a"+i).value)
 
-updateRank()
+let b=parseInt(document.getElementById("b"+i).value)
+
+scoreData[i]={a:a,b:b}
+
+calcRanking()
 
 }
 
-function updateRank(){
+function calcRanking(){
 
 let table={}
 
 teams.forEach(t=>{
 
-table[t]={w:0,l:0,p:0}
+table[t]={win:0,lose:0,point:0,against:0}
 
 })
 
-matches.forEach(m=>{
+matches.forEach((m,i)=>{
 
-if(m.sa==""||m.sb=="") return
+if(scoreData[i]){
 
-let a=parseInt(m.sa)
-let b=parseInt(m.sb)
+let a=scoreData[i].a
+let b=scoreData[i].b
 
-table[m.a].p+=a-b
-table[m.b].p+=b-a
+table[m.teamA].point+=a
+table[m.teamA].against+=b
+
+table[m.teamB].point+=b
+table[m.teamB].against+=a
 
 if(a>b){
-
-table[m.a].w++
-table[m.b].l++
-
+table[m.teamA].win++
+table[m.teamB].lose++
 }else{
-
-table[m.b].w++
-table[m.a].l++
+table[m.teamB].win++
+table[m.teamA].lose++
+}
 
 }
 
@@ -208,87 +258,40 @@ let arr=Object.entries(table)
 
 arr.sort((x,y)=>{
 
-if(y[1].w!=x[1].w)
-return y[1].w-x[1].w
+if(y[1].win!=x[1].win){
+return y[1].win-x[1].win
+}
 
-return y[1].p-x[1].p
+let diffX=x[1].point-x[1].against
+let diffY=y[1].point-y[1].against
+
+return diffY-diffX
 
 })
 
 let html="<table>"
-html+="<tr><th>팀</th><th>승</th><th>패</th><th>득실</th></tr>"
+
+html+="<tr><th>팀</th><th>승</th><th>패</th><th>득점</th><th>실점</th></tr>"
 
 arr.forEach(r=>{
 
-html+=`
-<tr>
+html+=`<tr>
 <td>${r[0]}</td>
-<td>${r[1].w}</td>
-<td>${r[1].l}</td>
-<td>${r[1].p}</td>
-</tr>
-`
+<td>${r[1].win}</td>
+<td>${r[1].lose}</td>
+<td>${r[1].point}</td>
+<td>${r[1].against}</td>
+</tr>`
 
 })
 
 html+="</table>"
 
-document.getElementById("groupRank").innerHTML=html
-
-}
-
-function makeTournament(){
-
-let table={}
-
-teams.forEach(t=>{
-table[t]={w:0,p:0}
-})
-
-matches.forEach(m=>{
-
-if(m.sa==""||m.sb=="") return
-
-let a=parseInt(m.sa)
-let b=parseInt(m.sb)
-
-table[m.a].p+=a-b
-table[m.b].p+=b-a
-
-if(a>b) table[m.a].w++
-else table[m.b].w++
-
-})
-
-let arr=Object.entries(table)
-
-arr.sort((x,y)=>{
-
-if(y[1].w!=x[1].w)
-return y[1].w-x[1].w
-
-return y[1].p-x[1].p
-
-})
-
-let top4=arr.slice(0,4)
-
-let html="<table>"
-html+="<tr><th>4강</th></tr>"
-
-html+=`
-<tr><td>${top4[0][0]} vs ${top4[3][0]}</td></tr>
-<tr><td>${top4[1][0]} vs ${top4[2][0]}</td></tr>
-`
-
-html+="</table>"
-
-document.getElementById("tournament").innerHTML=html
+document.getElementById("ranking").innerHTML=html
 
 }
 
 </script>
 
-  </body>
+</body>
 </html>
-:::
