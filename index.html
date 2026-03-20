@@ -1,296 +1,229 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<title>배드민턴 대회관리 PRO</title>
-
-<style>
-
-body{
-font-family:Arial;
-text-align:center;
-background:#f4f4f4;
-}
-
-h1{
-background:#222;
-color:white;
-padding:10px;
-}
-
-button{
-padding:10px;
-margin:5px;
-font-size:16px;
-}
-
-.match{
-background:white;
-margin:8px;
-padding:10px;
-border-radius:10px;
-}
-
-table{
-margin:auto;
-border-collapse:collapse;
-}
-
-td,th{
-border:1px solid #aaa;
-padding:6px;
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>배드민턴 대회관리 PRO+</title>
+    <style>
+        body { font-family: 'Pretendard', sans-serif; text-align: center; background: #f8f9fa; margin: 0; padding-bottom: 50px; }
+        h1 { background: #007bff; color: white; padding: 20px; margin: 0; font-size: 24px; }
+        h2 { border-bottom: 2px solid #007bff; display: inline-block; padding-bottom: 5px; margin-top: 30px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        input, select, button { padding: 10px; margin: 5px; border-radius: 5px; border: 1px solid #ddd; font-size: 16px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #0056b3; }
+        .match-card { background: #fff; margin: 10px auto; padding: 15px; border: 1px solid #eee; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 2px 2px 5px rgba(0,0,0,0.05); }
+        .match-card input { width: 50px; text-align: center; }
+        .group-box { display: inline-block; width: 45%; vertical-align: top; margin: 10px; background: #f1f3f5; padding: 10px; border-radius: 10px; }
+        table { width: 100%; margin-top: 10px; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; font-size: 14px; }
+        th { background: #eee; }
+        .win { color: #d9534f; font-weight: bold; }
+        .tournament-section { background: #fff3cd; padding: 20px; border-radius: 15px; margin-top: 40px; }
+    </style>
 </head>
-
 <body>
 
-<h1>🏸 배드민턴 PRO</h1>
+<h1>🏸 배드민턴 PRO+ (League & Tournament)</h1>
 
-<h2>팀 등록</h2>
+<div class="container">
+    <section>
+        <h2>1. 팀 등록</h2>
+        <div>
+            <input id="teamInput" placeholder="팀 이름 입력 (엔터 가능)" onkeypress="if(event.keyCode==13) addTeam()">
+            <button onclick="addTeam()">추가</button>
+        </div>
+        <div id="teamList" style="margin-top:10px; color:#666;">등록된 팀이 없습니다.</div>
+    </section>
 
-<input id="teamInput">
-<button onclick="addTeam()">추가</button>
+    <section>
+        <h2>2. 예선 조 편성</h2>
+        <div>
+            <select id="groupCount">
+                <option value="2">2개 조 (A, B)</option>
+                <option value="4">4개 조 (A, B, C, D)</option>
+            </select>
+            <button onclick="makeGroups()" style="background:#28a745;">대진표 생성 (Full League)</button>
+        </div>
+        <div id="groupsDisplay"></div>
+    </section>
 
-<div id="teamList"></div>
+    <section>
+        <h2>3. 예선 경기 결과 입력</h2>
+        <div id="matchesDisplay"></div>
+    </section>
 
-<h2>조 수</h2>
+    <section>
+        <h2>4. 실시간 순위</h2>
+        <div id="rankingDisplay">예선 결과가 여기에 표시됩니다.</div>
+        <button id="btnTournament" onclick="startTournament()" style="display:none; margin-top:20px; background:#6f42c1; width:100%;">본선 토너먼트 대진 생성</button>
+    </section>
 
-<select id="groupCount">
-<option value="2">2조</option>
-<option value="4">4조</option>
-</select>
-
-<button onclick="makeGroups()">자동 조편성</button>
-
-<div id="groups"></div>
-
-<h2>경기</h2>
-
-<div id="matches"></div>
-
-<h2>순위표</h2>
-
-<div id="ranking"></div>
+    <section id="tournamentSection" class="tournament-section" style="display:none;">
+        <h2>🏆 본선 토너먼트 (4강/결승)</h2>
+        <div id="tournamentMatches"></div>
+        <div id="winnerDisplay" style="font-size:24px; font-weight:bold; color:#007bff; margin-top:20px;"></div>
+    </section>
+</div>
 
 <script>
+let teams = [];
+let groups = {};
+let matches = [];
+let scores = {};
+let tournamentMatches = [];
 
-let teams=[]
-let groups={}
-let matches=[]
-let scoreData={}
-
-function addTeam(){
-
-let name=document.getElementById("teamInput").value
-
-teams.push(name)
-
-document.getElementById("teamList").innerHTML=teams.join("<br>")
-
-document.getElementById("teamInput").value=""
-
+// 1. 팀 추가
+function addTeam() {
+    let name = document.getElementById("teamInput").value.trim();
+    if(!name) return;
+    teams.push(name);
+    document.getElementById("teamList").innerText = "참가팀: " + teams.join(", ");
+    document.getElementById("teamInput").value = "";
 }
 
-function shuffle(array){
+// 2. 조 편성 및 대진 생성
+function makeGroups() {
+    if(teams.length < 4) { alert("최소 4팀 이상 등록해주세요."); return; }
+    
+    // 셔플 및 조 배정
+    let shuffled = [...teams].sort(() => Math.random() - 0.5);
+    let count = parseInt(document.getElementById("groupCount").value);
+    groups = {};
+    for(let i=0; i<count; i++) groups["조 "+String.fromCharCode(65+i)] = [];
+    
+    shuffled.forEach((t, i) => {
+        groups["조 "+String.fromCharCode(65 + (i % count))].push(t);
+    });
 
-for(let i=array.length-1;i>0;i--){
+    // 화면 표시
+    let gHtml = "";
+    for(let g in groups) {
+        gHtml += `<div class="group-box"><strong>${g}</strong><br>${groups[g].join("<br>")}</div>`;
+    }
+    document.getElementById("groupsDisplay").innerHTML = gHtml;
 
-let j=Math.floor(Math.random()*(i+1))
-
-[array[i],array[j]]=[array[j],array[i]]
-
+    // 예선 리그 대진 생성
+    matches = [];
+    for(let g in groups) {
+        let t = groups[g];
+        for(let i=0; i<t.length; i++) {
+            for(let j=i+1; j<t.length; j++) {
+                matches.push({ group: g, a: t[i], b: t[j], scoreA: null, scoreB: null });
+            }
+        }
+    }
+    renderMatches();
+    document.getElementById("btnTournament").style.display = "block";
 }
 
+// 3. 경기 목록 렌더링
+function renderMatches() {
+    let html = "";
+    matches.forEach((m, i) => {
+        html += `<div class="match-card">
+            <span>[${m.group}]</span>
+            <strong>${m.a}</strong>
+            <input type="number" id="sA${i}" value="${m.scoreA!==null?m.scoreA:''}" onchange="updateScore(${i})">
+            :
+            <input type="number" id="sB${i}" value="${m.scoreB!==null?m.scoreB:''}" onchange="updateScore(${i})">
+            <strong>${m.b}</strong>
+        </div>`;
+    });
+    document.getElementById("matchesDisplay").innerHTML = html;
 }
 
-function makeGroups(){
-
-shuffle(teams)
-
-let groupCount=parseInt(document.getElementById("groupCount").value)
-
-groups={}
-
-for(let i=0;i<groupCount;i++){
-groups["Group "+(i+1)]=[]
+// 4. 점수 업데이트 및 순위 계산
+function updateScore(i) {
+    matches[i].scoreA = parseInt(document.getElementById("sA"+i).value);
+    matches[i].scoreB = parseInt(document.getElementById("sB"+i).value);
+    calcRanking();
 }
 
-teams.forEach((t,i)=>{
+function calcRanking() {
+    let stats = {};
+    teams.forEach(t => stats[t] = { win: 0, lose: 0, pts: 0, opp: 0, diff: 0, group: "" });
+    
+    // 조 정보 매핑
+    for(let g in groups) groups[g].forEach(t => stats[t].group = g);
 
-let g="Group "+((i%groupCount)+1)
+    matches.forEach(m => {
+        if(!isNaN(m.scoreA) && !isNaN(m.scoreB)) {
+            stats[m.a].pts += m.scoreA; stats[m.a].opp += m.scoreB;
+            stats[m.b].pts += m.scoreB; stats[m.b].opp += m.scoreA;
+            if(m.scoreA > m.scoreB) { stats[m.a].win++; stats[m.b].lose++; }
+            else if(m.scoreA < m.scoreB) { stats[m.b].win++; stats[m.a].lose++; }
+        }
+    });
 
-groups[g].push(t)
+    Object.keys(stats).forEach(t => stats[t].diff = stats[t].pts - stats[t].opp);
 
-})
-
-showGroups()
-
-makeMatches()
-
+    // 조별로 순위표 생성
+    let html = "";
+    for(let g in groups) {
+        let sorted = groups[g].map(t => [t, stats[t]]).sort((a, b) => b[1].win - a[1].win || b[1].diff - a[1].diff);
+        html += `<h3>${g} 순위</h3><table><tr><th>팀</th><th>승-패</th><th>득실차</th></tr>`;
+        sorted.forEach(s => {
+            html += `<tr><td>${s[0]}</td><td>${s[1].win}승 ${s[1].lose}패</td><td>${s[1].diff}</td></tr>`;
+        });
+        html += `</table>`;
+    }
+    document.getElementById("rankingDisplay").innerHTML = html;
+    return stats;
 }
 
-function showGroups(){
+// 5. 본선 토너먼트 시작
+function startTournament() {
+    let stats = calcRanking();
+    let qualifiers = [];
 
-let html=""
+    for(let g in groups) {
+        let sorted = groups[g].map(t => [t, stats[t]]).sort((a, b) => b[1].win - a[1].win || b[1].diff - a[1].diff);
+        qualifiers.push({ group: g, 1: sorted[0][0], 2: sorted[1] ? sorted[1][0] : "부전승" });
+    }
 
-for(let g in groups){
+    document.getElementById("tournamentSection").style.display = "block";
+    let tHtml = "";
+    
+    // 간단한 4강 예시 (2조인 경우: A1 vs B2, B1 vs A2)
+    if(qualifiers.length === 2) {
+        tournamentMatches = [
+            { id: "SF1", name: "4강 1경기", a: qualifiers[0][1], b: qualifiers[1][2], sA:0, sB:0 },
+            { id: "SF2", name: "4강 2경기", a: qualifiers[1][1], b: qualifiers[0][2], sA:0, sB:0 }
+        ];
+    } else {
+        tHtml = "<p>4개 조 토너먼트는 현재 개발 중입니다. (2개 조 추천)</p>";
+    }
 
-html+="<h3>"+g+"</h3>"
-
-groups[g].forEach(t=>{
-html+=t+"<br>"
-})
-
+    renderTournament();
 }
 
-document.getElementById("groups").innerHTML=html
-
+function renderTournament() {
+    let html = "";
+    tournamentMatches.forEach((m, i) => {
+        html += `<div class="match-card" style="background:#fff7e6">
+            <strong>${m.name}</strong> | ${m.a} <input type="number" id="tsA${i}"> : <input type="number" id="tsB${i}"> ${m.b}
+            <button onclick="saveTournament(${i})">결과확정</button>
+        </div>`;
+    });
+    document.getElementById("tournamentMatches").innerHTML = html;
 }
 
-function makeMatches(){
+function saveTournament(i) {
+    let sa = parseInt(document.getElementById("tsA"+i).value);
+    let sb = parseInt(document.getElementById("tsB"+i).value);
+    let winner = sa > sb ? tournamentMatches[i].a : tournamentMatches[i].b;
 
-matches=[]
-
-for(let g in groups){
-
-let t=groups[g]
-
-for(let i=0;i<t.length;i++){
-
-for(let j=i+1;j<t.length;j++){
-
-matches.push({
-teamA:t[i],
-teamB:t[j],
-group:g
-})
-
+    if(tournamentMatches.length === 2) { // 4강 끝났을 때
+        tournamentMatches[i].winner = winner;
+        if(tournamentMatches[0].winner && tournamentMatches[1].winner && tournamentMatches.length < 3) {
+            tournamentMatches.push({ id: "FINAL", name: "🏅 결승전", a: tournamentMatches[0].winner, b: tournamentMatches[1].winner, sA:0, sB:0 });
+            renderTournament();
+        }
+    } else if (tournamentMatches[i].id === "FINAL") {
+        document.getElementById("winnerDisplay").innerText = "🎊 최종 우승: " + winner + " 🎊";
+    }
 }
-
-}
-
-}
-
-showMatches()
-
-}
-
-function showMatches(){
-
-let html=""
-
-matches.forEach((m,i)=>{
-
-html+=`<div class="match">
-
-${m.group} : ${m.teamA} vs ${m.teamB}
-
-<br>
-
-<input id="a${i}" type="number" placeholder="A점수">
-
-<input id="b${i}" type="number" placeholder="B점수">
-
-<button onclick="saveScore(${i})">저장</button>
-
-</div>`
-
-})
-
-document.getElementById("matches").innerHTML=html
-
-}
-
-function saveScore(i){
-
-let a=parseInt(document.getElementById("a"+i).value)
-
-let b=parseInt(document.getElementById("b"+i).value)
-
-scoreData[i]={a:a,b:b}
-
-calcRanking()
-
-}
-
-function calcRanking(){
-
-let table={}
-
-teams.forEach(t=>{
-
-table[t]={win:0,lose:0,point:0,against:0}
-
-})
-
-matches.forEach((m,i)=>{
-
-if(scoreData[i]){
-
-let a=scoreData[i].a
-let b=scoreData[i].b
-
-table[m.teamA].point+=a
-table[m.teamA].against+=b
-
-table[m.teamB].point+=b
-table[m.teamB].against+=a
-
-if(a>b){
-table[m.teamA].win++
-table[m.teamB].lose++
-}else{
-table[m.teamB].win++
-table[m.teamA].lose++
-}
-
-}
-
-})
-
-let arr=Object.entries(table)
-
-arr.sort((x,y)=>{
-
-if(y[1].win!=x[1].win){
-return y[1].win-x[1].win
-}
-
-let diffX=x[1].point-x[1].against
-let diffY=y[1].point-y[1].against
-
-return diffY-diffX
-
-})
-
-let html="<table>"
-
-html+="<tr><th>팀</th><th>승</th><th>패</th><th>득점</th><th>실점</th></tr>"
-
-arr.forEach(r=>{
-
-html+=`<tr>
-<td>${r[0]}</td>
-<td>${r[1].win}</td>
-<td>${r[1].lose}</td>
-<td>${r[1].point}</td>
-<td>${r[1].against}</td>
-</tr>`
-
-})
-
-html+="</table>"
-
-document.getElementById("ranking").innerHTML=html
-
-}
-
 </script>
 
 </body>
